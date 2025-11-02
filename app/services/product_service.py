@@ -3,7 +3,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.products import Product as ProductModel
 from app.models.users import User as UserModel
 from app.models.reviews import Review as ReviewModel
-from fastapi import HTTPException
 
 from app.services import find_category
 from app.core.exceptions import ProductNotFound, CategoryNotFound

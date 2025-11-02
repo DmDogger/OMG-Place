@@ -1,3 +1,4 @@
+fastapi-pagination
 pyjwt
 uliweb-alembic
 accessify==0.3.1

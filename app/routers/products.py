@@ -1,23 +1,28 @@
+# app/routers/products.py
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from fastapi_pagination import Page
+from fastapi_pagination.ext.sqlalchemy import paginate
 
 from app.auth import get_current_seller
-from app.models.products import Product as ProductModel
-from app.models.users import User as UserModel
-from app.schemas import ProductCreate as ProductCreateSchema, Product as ProductSchema
-from app.services import find_all_active_products, find_active_product, find_category, validate_product_ownership
-from app.core.exceptions import CategoryNotFound, ProductNotFound, ProductOwnershipError
-
 from app.db_depends import get_async_db
+from app.models.products import Product as ProductModel # ORM Модель
+from app.models.users import User as UserModel
+from app.schemas import ProductCreate as ProductCreateSchema, ProductOut, Product as ProductSchema
+from app.core.exceptions import CategoryNotFound, ProductNotFound, ProductOwnershipError
+from app.services import find_active_product, find_category, validate_product_ownership
+
 router = APIRouter(
     prefix='/products',
     tags=['products']
 )
 
-@router.get('/', response_model=list[ProductSchema], status_code=200)
-async def get_all_active_products(db: AsyncSession = Depends(get_async_db)):
-    products = await find_all_active_products(db)
-    return products
+@router.get('/', response_model=Page[ProductOut], status_code=200)
+async def get_products(db: AsyncSession = Depends(get_async_db)):
+    stmt = select(ProductModel).where(ProductModel.is_active == True)
+    return await paginate(db, stmt)
 
 
 @router.post('/',response_model=ProductSchema, status_code=201)

@@ -73,8 +73,9 @@ class Product(ProductCreate):
     Используется в GET запросах
     """
     is_active: bool = Field(description='Активность товара')
-    model_config = ConfigDict(from_attributes=True)
     rating: float
+    model_config = ConfigDict(from_attributes=True)
+
 
 class UserCreate(BaseModel):
     """
@@ -125,3 +126,10 @@ class Review(BaseModel):
     is_active: bool
     grade: int
 
+class ProductOut(BaseModel):
+    """ Модель для ответа с данными продукта с примененной пагинацией  """
+    id: int
+    name: str
+    price: float
+    rating: float
+    model_config = ConfigDict(from_attributes=True)
