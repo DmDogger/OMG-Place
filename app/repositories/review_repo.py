@@ -55,7 +55,7 @@ class ReviewRepository(BaseSQLRepository):
     async def delete(self, id_):
         stmt = select(ReviewModel).where(ReviewModel.id == id_,
                                          ReviewModel.is_active == True)
-        review = self.db.scalar(stmt)
+        review = await self.db.scalar(stmt)
         if not review:
             return None
         review.is_active = False

@@ -4,7 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.users import User as UserModel
 from app.models.reviews import Review as ReviewModel
 
-from app.core.exceptions import ReviewNotFound, ProductNotFound, SellerCannotLeaveReview, CanReviewOnlyOnce
+from app.core.exceptions import ReviewNotFound, ProductNotFound, SellerCannotLeaveReview, CanReviewOnlyOnce, \
+    AccessDenied
 from app.repositories.products_repo import ProductRepository
 from app.repositories.review_repo import ReviewRepository
 from app.schemas import ReviewCreate as ReviewCreateSchema
@@ -44,29 +45,6 @@ class ReviewService:
         await self._review_repository.db.refresh(review)
         return review
 
-
-
-    async def find_active_review(review_id: int,
-                                 db: AsyncSession):
-        """ Метод находит активный отзыв и возвращает его """
-        review = await db.scalars(select(ReviewModel).where(ReviewModel.id == review_id,
-                                                      ReviewModel.is_active == True))
-        if not review.first():
-            raise ReviewNotFound()
-        return review
-
-    async def get_user_active_review(review_id: int,
-                                     current_user: UserModel,
-                                     db: AsyncSession) -> ReviewModel:
-        """ Возвращает активный отзыв пользователя если он существует """
-        review = await db.scalars(select(ReviewModel).where(ReviewModel.user_id == current_user.id,
-                                                            ReviewModel.id == review_id,
-                                             ReviewModel.is_active == True))
-        review = review.first()
-        if not review:
-            raise ReviewNotFound()
-        return review
-
     async def user_already_reviewed_product(self,
                                             product_id: int,
                                             user_id: int
@@ -76,4 +54,23 @@ class ReviewService:
         if result:
             return True
         return False
+
+    async def delete_review(self, review_id: int,
+                            user: UserModel):
+        """ Method allows delete review by ID """
+        if user.role != 'admin':
+            raise AccessDenied()
+        review = await self._review_repository.get(review_id)
+        if not review:
+            raise ReviewNotFound()
+        product = await self._product_repository.get(review.product_id)
+        if not product:
+            raise ProductNotFound()
+        await self._review_repository.delete(review_id)
+        await self._review_repository.db.commit() # Обратить внимание! Нужно переделать, чтобы транзакциями управлял не сервис!
+        await self._product_service.push_product_rating(product.id)
+        await self._review_repository.db.commit() # Обратить внимание! Нужно переделать, чтобы транзакциями управлял не сервис!
+
+
+
 
