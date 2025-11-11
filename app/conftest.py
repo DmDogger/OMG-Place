@@ -2,8 +2,9 @@ from unittest.mock import AsyncMock
 import pytest
 from faker import Faker
 from fastapi.testclient import TestClient
+
+from app.core.exceptions import ProductNotFound
 from app.main import app
-from app.core.dependecies.services.product_service import get_product_service
 
 
 Faker.seed(100)
@@ -34,15 +35,14 @@ def mock_product_service(expected_product_data) -> AsyncMock:
     mock_service.find_active_product.return_value = expected_product_data
     return mock_service
 
+@pytest.fixture(scope='session')
+def mock_not_found_error() -> AsyncMock:
+    mock_service = AsyncMock()
+    mock_service.find_active_product.side_effect = ProductNotFound()
+    return mock_service
+
 
 @pytest.fixture(scope='module')
 def client(mock_product_service: AsyncMock) -> TestClient:
-    def override_get_product_service():
-        return mock_product_service
-
-    app.dependency_overrides[get_product_service] = override_get_product_service
-
-    with TestClient(app) as client_instance:
-        yield client_instance
-
-    app.dependency_overrides.clear()
+    with TestClient(app) as client:
+        yield client

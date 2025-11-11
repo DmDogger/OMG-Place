@@ -1,9 +1,18 @@
+from typing import TypeVar, Generic
+
 from pydantic import BaseModel, Field, ConfigDict, EmailStr
 from fastapi_filter.contrib.sqlalchemy import Filter as SQLAlchemyFilter
 from app.models.products import Product as ProductModel
 from app.models.categories import Category as CategoryModel
 from decimal import Decimal
 from datetime import datetime
+
+T = TypeVar('T')
+
+class ResponseModel(BaseModel, Generic[T]):
+    status: str = Field(description='Поле для статуса ответа')
+    data: T
+
 
 class CategoryCreate(BaseModel):
     """

@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends
 from fastapi_filter import FilterDepends
 from fastapi_pagination import Page, Params
+from starlette.responses import JSONResponse
 
 from app.auth import get_current_seller, get_current_user
 from app.core.dependecies.services.product_service import get_product_service
 from app.models.users import User as UserModel
-from app.schemas import ProductCreate as ProductCreateSchema, ProductOut, Product as ProductSchema, ProductFilter
+from app.schemas import ProductCreate as ProductCreateSchema, ProductOut, Product as ProductSchema, ProductFilter, \
+    ResponseModel
 from app.services.product_service import ProductService
 
 router = APIRouter(
@@ -24,16 +26,17 @@ async def get_products(product_service:ProductService = Depends(get_product_serv
     return products
 
 
-@router.get("/search/{product_id}", response_model=ProductSchema, status_code=200)  ###### refactoring --->
+@router.get("/search/{product_id}", response_model=ResponseModel[ProductSchema], status_code=200)  ###### refactoring --->
 async def get_product(product_id: int,
                       product_service: ProductService = Depends(get_product_service)):
     """
     Returns a product by ID.
     """
     product = await product_service.find_active_product(product_id)
-    return product
+    return ResponseModel(status='success',
+                         data=product)
 
-@router.post('/',response_model=ProductSchema, status_code=201)
+@router.post('/',response_model=ResponseModel[ProductSchema], status_code=201)
 async def create_product(product: ProductCreateSchema,
                          current_user: UserModel = Depends(get_current_seller),
                          product_service: ProductService = Depends(get_product_service)):
@@ -41,8 +44,8 @@ async def create_product(product: ProductCreateSchema,
     Add a new product. Available only for users with role 'seller'.
     """
     product = await product_service.create_product(product, current_user)
-    return product
-
+    return ResponseModel(status='success',
+                         data=product)
 
 @router.get('/search/{category_id}', response_model=list[ProductSchema])
 async def get_products_by_category(category_id: int,
@@ -53,7 +56,7 @@ async def get_products_by_category(category_id: int,
     products = await product_service.find_products_by_category(category_id)
     return products
 
-@router.put('/{product_id}', response_model=ProductSchema, status_code=200)
+@router.put('/{product_id}', response_model=ResponseModel[ProductSchema], status_code=200)
 async def update_product(product_id: int,
                          product_data: ProductCreateSchema,
                          user: UserModel = Depends(get_current_user),
@@ -61,7 +64,8 @@ async def update_product(product_id: int,
                          ):
     """ Updating product by ID """
     product = await product_service.update_product(product_id, product_data, user)
-    return product
+    return ResponseModel(status='success',
+                         data=product)
 
 @router.delete("/{product_id}", status_code=200)
 async def delete_product(product_id: int,
